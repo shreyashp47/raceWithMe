@@ -17,10 +17,10 @@ export class JumpController {
     this.justLanded = false
     this.justCrashed = false
 
-    const ground = sampleGround(bike.position.x, bike.position.z)
+    const ground = sampleGround(bike.mesh.position.x, bike.mesh.position.z)
 
     if (!this.isAirborne) {
-      const heightAboveGround = bike.position.y - ground.height
+      const heightAboveGround = bike.mesh.position.y - ground.height
 
       if (ground.onRamp && bike.forwardSpeed > 3) {
         const rampTilt = 1 - ground.normal.y
@@ -30,7 +30,7 @@ export class JumpController {
         this.isAirborne = true
         this.airTime = 0
       } else {
-        bike.position.y = ground.height
+        bike.mesh.position.y = ground.height
         this.lastGroundNormal.copy(ground.normal)
       }
       return
@@ -38,13 +38,13 @@ export class JumpController {
 
     this.airTime += dt
     bike.velocity.y += this.gravity * dt
-    bike.position.y += bike.velocity.y * dt
+    bike.mesh.position.y += bike.velocity.y * dt
 
     const fallRatio = THREE.MathUtils.clamp(-bike.velocity.y / 15, -1, 1)
     bike.pitch = THREE.MathUtils.lerp(bike.pitch, fallRatio * 0.3, Math.min(1, 4 * dt))
 
-    if (bike.position.y <= ground.height && this.airTime > this.minAirTimeForLanding) {
-      bike.position.y = ground.height
+    if (bike.mesh.position.y <= ground.height && this.airTime > this.minAirTimeForLanding) {
+      bike.mesh.position.y = ground.height
 
       const velDir = bike.velocity.clone().normalize()
       const landingAngle = velDir.angleTo(ground.normal.clone().negate())
@@ -65,7 +65,7 @@ export class JumpController {
   }
 
   getCurrentAirHeight(bike, sampleGround) {
-    const ground = sampleGround(bike.position.x, bike.position.z)
-    return Math.max(0, bike.position.y - ground.height)
+    const ground = sampleGround(bike.mesh.position.x, bike.mesh.position.z)
+    return Math.max(0, bike.mesh.position.y - ground.height)
   }
 }
