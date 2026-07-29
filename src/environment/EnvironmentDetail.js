@@ -23,7 +23,7 @@ export function addEnvironmentDetail(scene, getHeightAt, isOnTrack) {
   leavesGeo.translate(0, 2.0, 0)
   const leavesMat = Materials.foliage()
 
-  const TREE_COUNT = 400
+  const TREE_COUNT = 250
   const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, TREE_COUNT)
   const leavesMesh = new THREE.InstancedMesh(leavesGeo, leavesMat, TREE_COUNT)
   trunkMesh.castShadow = true
@@ -36,8 +36,8 @@ export function addEnvironmentDetail(scene, getHeightAt, isOnTrack) {
 
   while (placed < TREE_COUNT && attempts < TREE_COUNT * 20) {
     attempts++
-    const x = (Math.random() - 0.5) * 140
-    const z = (Math.random() - 0.5) * 140
+    const x = (Math.random() - 0.5) * 180
+    const z = (Math.random() - 0.5) * 180
     if (isOnTrack(x, z)) continue
 
     const y = getHeightAt(x, z)

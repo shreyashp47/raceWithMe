@@ -21,8 +21,20 @@ export class AiBot {
     this.acceleration = acceleration
   }
 
-  update(dt, terrain) {
-    this.progress += dt * 0.05 * (this.maxSpeed / 7)
+  update(dt, terrain, trees) {
+
+    let collisionSlowdown = 1
+    if (trees) {
+      for (const tree of trees) {
+        const treePos = tree.isMesh ? new THREE.Vector3().setFromMatrixPosition(tree.matrixWorld) : tree
+        const dist = this.mesh.position.distanceTo(treePos)
+        if (dist < 2.5) {
+          collisionSlowdown = Math.min(collisionSlowdown, 0.3)
+        }
+      }
+    }
+
+    this.progress += dt * 0.05 * collisionSlowdown * (this.maxSpeed / 7)
 
     if (this.progress > 1) this.progress -= 1
 

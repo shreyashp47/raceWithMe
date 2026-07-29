@@ -369,7 +369,7 @@ function animate() {
       }
     }
 
-    if (bots) bots.forEach(b => b.update(dt, terrain))
+    if (bots) bots.forEach(b => b.update(dt, terrain, trees))
     ghost.update()
     if (bike && chaseCam) chaseCam.update(bike.mesh, bike.speed, bike.maxSpeed, dt)
   }
