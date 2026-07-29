@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bike Viewer</title>
+<style>
+body { margin: 0; overflow: hidden; background: #2a2a2a; }
+canvas { display: block; }
+label { color:#fff; font-family:sans-serif; font-size:13px; }
+#controls { position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,0.7); padding:8px 16px; border-radius:8px;
+  display:flex; gap:16px; align-items:center; z-index:10; }
+#controls input { width:60px; }
+#controls button { padding:4px 12px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="controls">
+  <label>Rot X <input type="range" id="rotX" min="-3.14" max="3.14" step="0.01" value="0.3"></label>
+  <label>Rot Y <input type="range" id="rotY" min="-3.14" max="3.14" step="0.01" value="0"></label>
+  <label>Color <input type="color" id="bikeColor" value="#ff4400"></label>
+  <button id="resetView">Reset View</button>
+</div>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.185.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+import { createBikeMesh } from './src/objects/Bike.js'
+
+const scene = new THREE.Scene()
+scene.background = new THREE.Color(0x2a2a2a)
+
+const camera = new THREE.PerspectiveCamera(40, innerWidth / innerHeight, 0.1, 10)
+camera.position.set(2, 1.5, 3)
+
+const renderer = new THREE.WebGLRenderer({ antialias: true })
+renderer.setSize(innerWidth, innerHeight)
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+document.body.prepend(renderer.domElement)
+
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.target.set(0, 0.45, 0)
+controls.update()
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.6)
+scene.add(ambient)
+
+const dir = new THREE.DirectionalLight(0xffffff, 1.2)
+dir.position.set(3, 5, 4)
+scene.add(dir)
+
+const rim = new THREE.DirectionalLight(0xffffff, 0.4)
+rim.position.set(-3, 2, -4)
+scene.add(rim)
+
+
+let bikeGroup = null
+
+function buildBike(color) {
+  if (bikeGroup) scene.remove(bikeGroup)
+  bikeGroup = createBikeMesh(parseInt(color.slice(1), 16))
+  scene.add(bikeGroup)
+}
+
+const colorInput = document.getElementById('bikeColor')
+buildBike(colorInput.value)
+
+colorInput.addEventListener('input', () => buildBike(colorInput.value))
+
+document.getElementById('rotX').addEventListener('input', (e) => {
+  bikeGroup.rotation.x = parseFloat(e.target.value)
+})
+document.getElementById('rotY').addEventListener('input', (e) => {
+  bikeGroup.rotation.y = parseFloat(e.target.value)
+})
+document.getElementById('resetView').addEventListener('click', () => {
+  camera.position.set(2, 1.5, 3)
+  controls.target.set(0, 0.45, 0)
+  controls.update()
+  bikeGroup.rotation.set(0, 0, 0)
+  document.getElementById('rotX').value = '0'
+  document.getElementById('rotY').value = '0'
+})
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize(innerWidth, innerHeight)
+})
+
+function animate() {
+  requestAnimationFrame(animate)
+  renderer.render(scene, camera)
+}
+animate()
+</script>
+</body>
+</html>
