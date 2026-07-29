@@ -22,6 +22,13 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   const headlightMat = Materials.emissive(0xffaa33, 1.2)
   const taillightMat = Materials.emissive(0xff2222, 0.8)
 
+  // Rider materials
+  const gearMat = applyOpts(Materials.paint(colorHex))
+  const glovesBootsMat = applyOpts(Materials.darkMetal())
+  const accentMat = new THREE.MeshStandardMaterial({
+    color: 0xf2f2f2, roughness: 0.5, metalness: 0.1, flatShading: true
+  })
+
   // ================= WHEELS =================
   function makeWheel(radius, width) {
     const wheelGroup = new THREE.Group()
@@ -181,10 +188,19 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   })
 
   // ================= DETAILS =================
-  // Headlights
-  ;[-0.07, 0.07].forEach(x => {
+  // Headlight bracket — small dark housing that anchors the lights near
+  // the fork crown instead of them appearing to float/embed in the wheel.
+  const bracketGeo = new THREE.BoxGeometry(0.14, 0.04, 0.03)
+  const bracket = new THREE.Mesh(bracketGeo, darkMat)
+  bracket.position.set(0, 0.485, 0.52)
+  group.add(bracket)
+
+  // Headlights — repositioned to sit above the wheel's top edge (wheel
+  // radius 0.22 around y=0.22 center → top ≈0.44), previously at y=0.42
+  // which overlapped the tire. Now clear with margin.
+  ;[-0.05, 0.05].forEach(x => {
     const hl = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 10), headlightMat)
-    hl.position.set(x, 0.42, 0.55)
+    hl.position.set(x, 0.485, 0.53)
     group.add(hl)
   })
 
@@ -228,15 +244,29 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   torso.rotation.x = -0.5
   rider.add(torso)
 
+  // Chest number plate — small white panel, common MX jersey/plate detail
+  const plateGeo = new THREE.BoxGeometry(0.1, 0.08, 0.01)
+  const plate = new THREE.Mesh(plateGeo, accentMat)
+  plate.position.set(0, 0.60, -0.005)
+  plate.rotation.x = -0.5
+  rider.add(plate)
+
   // Head + Helmet
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), skinMat)
   head.position.set(0, 0.76, 0.12)
   rider.add(head)
 
   const helmetGeo = new THREE.SphereGeometry(0.085, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.65)
-  const helmet = new THREE.Mesh(helmetGeo, bodyMat)
+  const helmet = new THREE.Mesh(helmetGeo, gearMat)
   helmet.position.set(0, 0.79, 0.12)
   rider.add(helmet)
+
+  // Helmet peak — the forward-jutting bill characteristic of MX helmets
+  const peakGeo = new THREE.BoxGeometry(0.1, 0.015, 0.06)
+  const peak = new THREE.Mesh(peakGeo, gearMat)
+  peak.position.set(0, 0.795, 0.205)
+  peak.rotation.x = -0.35
+  rider.add(peak)
 
   const visorGeo = new THREE.SphereGeometry(0.06, 10, 10, 0, Math.PI, 0, Math.PI * 0.4)
   const visor = new THREE.Mesh(visorGeo, glassMat)
@@ -244,40 +274,96 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   visor.rotation.x = 1.2
   rider.add(visor)
 
-  // Arms
+  // Goggle strap — thin dark band across the helmet
+  const strapGeo = new THREE.BoxGeometry(0.15, 0.025, 0.01)
+  const strap = new THREE.Mesh(strapGeo, glovesBootsMat)
+  strap.position.set(0, 0.795, 0.13)
+  strap.rotation.x = 0.15
+  rider.add(strap)
+
+  // ---- Arms: two segments (upper arm + forearm) bent at the elbow ----
+  // Previously a single straight cylinder shoulder-to-grip, which looked
+  // stiff/robotic. Elbow pushed outward and down for a natural
+  // elbows-out MX riding stance.
   function makeArm(xSide) {
+    const armGroup = new THREE.Group()
     const shoulder = new THREE.Vector3(0.10 * xSide, 0.68, -0.02)
     const grip = new THREE.Vector3(0.16 * xSide, 0.55, 0.38)
-    const dir = new THREE.Vector3().subVectors(grip, shoulder)
-    const length = dir.length()
-    const armGeo = new THREE.CylinderGeometry(0.025, 0.02, length, 6)
-    const arm = new THREE.Mesh(armGeo, bodyMat)
-    const mid = new THREE.Vector3().addVectors(shoulder, grip).multiplyScalar(0.5)
-    arm.position.copy(mid)
-    arm.quaternion.setFromUnitVectors(
-      new THREE.Vector3(0, 1, 0),
-      dir.clone().normalize()
+    const elbow = new THREE.Vector3(
+      (shoulder.x + grip.x) / 2 + 0.05 * xSide,
+      (shoulder.y + grip.y) / 2 - 0.02,
+      (shoulder.z + grip.z) / 2
     )
-    return arm
+
+    function segment(a, b, r1, r2, mat) {
+      const dir = new THREE.Vector3().subVectors(b, a)
+      const length = dir.length()
+      const geo = new THREE.CylinderGeometry(r1, r2, length, 6)
+      const mesh = new THREE.Mesh(geo, mat)
+      const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5)
+      mesh.position.copy(mid)
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
+      return mesh
+    }
+
+    armGroup.add(segment(shoulder, elbow, 0.026, 0.022, gearMat))   // upper arm (jersey sleeve)
+    armGroup.add(segment(elbow, grip, 0.021, 0.019, glovesBootsMat)) // forearm/glove color
+
+    // Glove — small rounded block at the grip
+    const gloveGeo = new THREE.BoxGeometry(0.04, 0.03, 0.05)
+    const glove = new THREE.Mesh(gloveGeo, glovesBootsMat)
+    glove.position.copy(grip)
+    armGroup.add(glove)
+
+    // Elbow guard accent
+    const elbowGuard = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), accentMat)
+    elbowGuard.position.copy(elbow)
+    armGroup.add(elbowGuard)
+
+    return armGroup
   }
   rider.add(makeArm(-1))
   rider.add(makeArm(1))
 
-  // Legs
+  // ---- Legs: two segments (thigh + shin) bent at the knee ----
+  // Previously a single straight cylinder hip-to-peg. Knee pushed
+  // forward/outward for a natural riding crouch, plus knee pad + boot.
   function makeLeg(xSide) {
+    const legGroup = new THREE.Group()
     const hip = new THREE.Vector3(0.07 * xSide, 0.50, -0.14)
     const peg = new THREE.Vector3(0.14 * xSide, 0.22, 0.0)
-    const dir = new THREE.Vector3().subVectors(peg, hip)
-    const length = dir.length()
-    const legGeo = new THREE.CylinderGeometry(0.03, 0.025, length, 6)
-    const leg = new THREE.Mesh(legGeo, darkMat)
-    const mid = new THREE.Vector3().addVectors(hip, peg).multiplyScalar(0.5)
-    leg.position.copy(mid)
-    leg.quaternion.setFromUnitVectors(
-      new THREE.Vector3(0, 1, 0),
-      dir.clone().normalize()
+    const knee = new THREE.Vector3(
+      (hip.x + peg.x) / 2 + 0.04 * xSide,
+      (hip.y + peg.y) / 2,
+      (hip.z + peg.z) / 2 + 0.05
     )
-    return leg
+
+    function segment(a, b, r1, r2, mat) {
+      const dir = new THREE.Vector3().subVectors(b, a)
+      const length = dir.length()
+      const geo = new THREE.CylinderGeometry(r1, r2, length, 6)
+      const mesh = new THREE.Mesh(geo, mat)
+      const mid = new THREE.Vector3().addVectors(a, b).multiplyScalar(0.5)
+      mesh.position.copy(mid)
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize())
+      return mesh
+    }
+
+    legGroup.add(segment(hip, knee, 0.032, 0.027, gearMat))       // thigh (pants)
+    legGroup.add(segment(knee, peg, 0.026, 0.03, glovesBootsMat)) // shin/boot color
+
+    // Knee pad accent
+    const kneePad = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), accentMat)
+    kneePad.position.copy(knee)
+    legGroup.add(kneePad)
+
+    // Boot — bulkier block at the foot, MX boots are noticeably chunky
+    const bootGeo = new THREE.BoxGeometry(0.055, 0.04, 0.11)
+    const boot = new THREE.Mesh(bootGeo, glovesBootsMat)
+    boot.position.set(peg.x, peg.y - 0.01, peg.z + 0.02)
+    legGroup.add(boot)
+
+    return legGroup
   }
   rider.add(makeLeg(-1))
   rider.add(makeLeg(1))
