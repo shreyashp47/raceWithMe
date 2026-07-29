@@ -320,7 +320,9 @@ export class Bike {
     // ---- Ground snap (non-airborne only) ----
     if (!this.jumpController.isAirborne) {
       let targetY = 0
-      if (terrain) {
+      if (sampleGround) {
+        targetY = sampleGround(this.mesh.position.x, this.mesh.position.z).height
+      } else if (terrain) {
         targetY = terrain.getHeight(this.mesh.position.x, this.mesh.position.z)
       }
       this.mesh.position.y += (targetY - this.mesh.position.y) * 0.1
