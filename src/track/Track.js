@@ -8,6 +8,7 @@ export class Track {
   spline
   width = 5
   checkpoints = []
+  ramps = []
 
   constructor() {
     const points = [
@@ -28,6 +29,73 @@ export class Track {
 
     this.mesh = this.buildRoad()
     this.buildCheckpoints()
+    this.buildRamps()
+  }
+
+  buildRamps() {
+    const rampMat = new THREE.MeshStandardMaterial({
+      color: 0x8a7a60, roughness: 0.9, metalness: 0, flatShading: true
+    })
+    const rampList = [
+      { progress: 0.18, height: 1.2 },
+      { progress: 0.68, height: 1.2 },
+    ]
+    const depth = 3
+    const halfW = this.width / 2
+
+    for (const r of rampList) {
+      const p = this.spline.getPoint(r.progress)
+      const tangent = this.spline.getTangent(r.progress).normalize()
+
+      const hw = halfW, hd = depth / 2, h = r.height
+      const verts = [
+        -hw, 0, -hd,  hw, 0, -hd,  -hw, 0, hd,
+        hw, 0, hd,  -hw, h, hd,  hw, h, hd,
+      ]
+      const idx = [
+        0,2,1, 1,2,3, 0,1,4, 1,5,4,
+        2,4,3, 3,4,5, 0,4,2, 1,3,5,
+      ]
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3))
+      geo.setIndex(idx)
+      geo.computeVertexNormals()
+
+      const ramp = new THREE.Mesh(geo, rampMat)
+      ramp.position.copy(p)
+      ramp.position.y = 0.2
+      const angle = Math.atan2(tangent.x, tangent.z)
+      ramp.rotation.y = angle
+      ramp.receiveShadow = true
+      ramp.castShadow = true
+      this.mesh.add(ramp)
+
+      this.ramps.push({
+        mesh: ramp,
+        position: p.clone(),
+        tangent: tangent.clone(),
+        angle,
+        depth,
+        height: h,
+        halfW,
+      })
+    }
+  }
+
+  getRampInfo(x, z) {
+    for (const r of this.ramps) {
+      const dx = x - r.position.x
+      const dz = z - r.position.z
+      const localX = dx * Math.cos(r.angle) + dz * Math.sin(r.angle)
+      const localZ = -dx * Math.sin(r.angle) + dz * Math.cos(r.angle)
+      if (Math.abs(localX) < r.halfW && localZ > -r.depth / 2 && localZ < r.depth / 2) {
+        const height = 0.2 + r.height * (localZ + r.depth / 2) / r.depth
+        const normal = new THREE.Vector3(0, r.height / r.depth, 1).normalize()
+        normal.applyAxisAngle(new THREE.Vector3(0, 1, 0), r.angle)
+        return { height, normal, onRamp: true }
+      }
+    }
+    return null
   }
 
   buildCheckpoints() {

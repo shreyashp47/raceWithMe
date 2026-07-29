@@ -2,15 +2,17 @@ import * as THREE from 'three'
 
 export class JumpController {
   constructor(opts = {}) {
-    this.gravity = opts.gravity ?? -22
-    this.maxSafeLandingAngle = opts.maxSafeLandingAngle ?? 0.9
-    this.minAirTimeForLanding = opts.minAirTimeForLanding ?? 0.12
+    this.gravity = opts.gravity ?? -25
+    this.launchMultiplier = opts.launchMultiplier ?? 0.55
+    this.minLaunchSpeed = opts.minLaunchSpeed ?? 3
+    this.maxLaunchSpeed = opts.maxLaunchSpeed ?? 25
+    this.minAirTime = opts.minAirTime ?? 0.12
+    this.maxCrashImpact = opts.maxCrashImpact ?? 14
 
     this.isAirborne = false
     this.airTime = 0
     this.justLanded = false
     this.justCrashed = false
-    this.lastGroundNormal = new THREE.Vector3(0, 1, 0)
   }
 
   update(bike, sampleGround, dt) {
@@ -22,16 +24,11 @@ export class JumpController {
     if (!this.isAirborne) {
       const heightAboveGround = bike.mesh.position.y - ground.height
 
-      if (ground.onRamp && bike.forwardSpeed > 3) {
-        const rampTilt = 1 - ground.normal.y
-        const launchPower = bike.forwardSpeed * (0.35 + rampTilt * 0.9)
-
+      if (ground.onRamp && bike.speed > this.minLaunchSpeed && heightAboveGround < 0.6) {
+        const launchPower = bike.speed * this.launchMultiplier
         bike.velocity.y = launchPower
         this.isAirborne = true
         this.airTime = 0
-      } else {
-        bike.mesh.position.y = ground.height
-        this.lastGroundNormal.copy(ground.normal)
       }
       return
     }
@@ -40,32 +37,21 @@ export class JumpController {
     bike.velocity.y += this.gravity * dt
     bike.mesh.position.y += bike.velocity.y * dt
 
-    const fallRatio = THREE.MathUtils.clamp(-bike.velocity.y / 15, -1, 1)
-    bike.pitch = THREE.MathUtils.lerp(bike.pitch, fallRatio * 0.3, Math.min(1, 4 * dt))
+    const pitchTarget = THREE.MathUtils.clamp(-bike.velocity.y / 15, -0.45, 0.3)
+    bike.pitch = THREE.MathUtils.lerp(bike.pitch, pitchTarget, Math.min(1, 5 * dt))
 
-    if (bike.mesh.position.y <= ground.height && this.airTime > this.minAirTimeForLanding) {
+    if (bike.mesh.position.y <= ground.height && this.airTime > this.minAirTime) {
       bike.mesh.position.y = ground.height
-
-      const velDir = bike.velocity.clone().normalize()
-      const landingAngle = velDir.angleTo(ground.normal.clone().negate())
-      const impactSpeed = Math.abs(bike.velocity.y)
-
       this.isAirborne = false
       bike.velocity.y = 0
       bike.pitch = 0
 
-      if (landingAngle > this.maxSafeLandingAngle && impactSpeed > 8) {
+      const impactSpeed = Math.abs(bike.velocity.y)
+      if (impactSpeed > this.maxCrashImpact) {
         this.justCrashed = true
       } else {
         this.justLanded = true
       }
-
-      this.lastGroundNormal.copy(ground.normal)
     }
-  }
-
-  getCurrentAirHeight(bike, sampleGround) {
-    const ground = sampleGround(bike.mesh.position.x, bike.mesh.position.z)
-    return Math.max(0, bike.mesh.position.y - ground.height)
   }
 }
