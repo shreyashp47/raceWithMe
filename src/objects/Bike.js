@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { Materials } from '../materials/MaterialPresets.js'
-import { JumpController } from '../physics/JumpController.js'
 
 /**
  * Creates a stylized low-poly dirt/downhill bike.
@@ -244,35 +243,17 @@ export class Bike {
   turnSpeed = 3
   friction = 4
   offroadFriction = 8
-  gravity = 15
-  velocity = new THREE.Vector3()
-  pitch = 0
-  jumpController = new JumpController()
 
-  get forwardSpeed() { return this.speed }
 
   constructor(color) {
     this.mesh = createBikeMesh(color)
   }
 
-  update(input, dt, track, terrain, trees, audio, onCollide, sampleGround) {
+  update(input, dt, track, terrain, trees, audio, onCollide) {
     const forward = input['w'] || input['arrowup']
     const reverse = input['s'] || input['arrowdown']
     const turnLeft = input['a'] || input['arrowleft']
     const turnRight = input['d'] || input['arrowright']
-
-    // ---- Jump physics ----
-    if (sampleGround) {
-      this.jumpController.update(this, sampleGround, dt)
-
-      if (this.jumpController.justLanded) {
-        onCollide?.()
-      }
-      if (this.jumpController.justCrashed) {
-        this.speed = 0
-        onCollide?.()
-      }
-    }
 
     const onTrack = this.isOnTrack(track)
     const currentMaxSpeed = onTrack ? this.maxSpeed : this.offroadMaxSpeed
@@ -294,7 +275,7 @@ export class Bike {
 
     this.speed = Math.max(-currentMaxSpeed / 2, Math.min(currentMaxSpeed, this.speed))
 
-    if (!this.jumpController.isAirborne && Math.abs(this.speed) > 0.1) {
+    if (Math.abs(this.speed) > 0.1) {
       const turnDir = turnLeft ? 1 : turnRight ? -1 : 0
       this.mesh.rotation.y += turnDir * this.turnSpeed * dt * Math.sign(this.speed)
     }
@@ -302,7 +283,7 @@ export class Bike {
     const forwardVec = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mesh.quaternion)
     const newPos = this.mesh.position.clone().add(forwardVec.multiplyScalar(this.speed * dt))
 
-    if (this.speed > 0 && trees && !this.jumpController.isAirborne) {
+    if (this.speed > 0 && trees) {
       let hit = false
       for (const tree of trees) {
         const treePos = tree.isMesh ? new THREE.Vector3().setFromMatrixPosition(tree.matrixWorld) : tree
@@ -316,21 +297,15 @@ export class Bike {
         }
       }
       if (!hit) this.mesh.position.copy(newPos)
-    } else if (!this.jumpController.isAirborne) {
+    } else {
       this.mesh.position.copy(newPos)
     }
 
-    // ---- Ground snap or airborne Y ----
-    if (!this.jumpController.isAirborne) {
-      let targetY = 0
-      if (terrain) {
-        targetY = terrain.getHeight(this.mesh.position.x, this.mesh.position.z)
-      }
-      this.mesh.position.y += (targetY - this.mesh.position.y) * 0.1
+    let targetY = 0
+    if (terrain) {
+      targetY = terrain.getHeight(this.mesh.position.x, this.mesh.position.z)
     }
-
-    // ---- Visual pitch ----
-    this.mesh.rotation.x += (this.pitch - this.mesh.rotation.x) * Math.min(1, 6 * dt)
+    this.mesh.position.y += (targetY - this.mesh.position.y) * 0.1
   }
 
   isOnTrack(track) {

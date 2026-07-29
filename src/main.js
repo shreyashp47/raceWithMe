@@ -332,13 +332,7 @@ function animate() {
 
   if (state === GameState.RACING || state === GameState.MENU) {
     if (bike && state === GameState.RACING) {
-      const sampleGround = (x, z) => {
-        const ramp = track.getRampInfo(x, z)
-        if (ramp) return ramp
-        const surf = terrain.getSurfaceInfo(x, z)
-        return { height: surf.height, normal: surf.normal, onRamp: false }
-      }
-      bike.update(input.keys, dt, track, terrain, trees, null, () => chaseCam?.shake(0.3), sampleGround)
+      bike.update(input.keys, dt, track, terrain, trees, null, () => chaseCam?.shake(0.3))
 
       const oldLap = lapManager.currentLap
       const oldCp = lapManager.nextCheckpoint
