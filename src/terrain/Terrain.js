@@ -1,12 +1,13 @@
 import * as THREE from 'three'
-import { Materials } from '../materials/MaterialPresets.js'
 
 export class Terrain {
   mesh
+  geometry
 
   constructor(size, segments, trackSpline) {
     const geo = new THREE.PlaneGeometry(size, size, segments, segments)
     geo.rotateX(-Math.PI / 2)
+    this.geometry = geo
 
     const pos = geo.attributes.position
     for (let i = 0; i < pos.count; i++) {
@@ -16,15 +17,18 @@ export class Terrain {
       const nearTrack = this.distanceToSpline(x, z, trackSpline) < 5
       if (nearTrack) continue
 
-      const h = Math.sin(x * 0.15) * Math.cos(z * 0.2) * 1.5
-        + Math.sin(x * 0.3 + z * 0.25) * 0.8
+      const h = Math.sin(x * 0.08) * Math.cos(z * 0.1) * 10
+        + Math.sin(x * 0.15 + z * 0.12) * 5
+        + Math.sin(x * 0.3 + z * 0.25) * 2
       pos.setY(i, h)
     }
 
     pos.needsUpdate = true
     geo.computeVertexNormals()
 
-    const mat = Materials.grass()
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x3f6b34, roughness: 0.9, metalness: 0
+    })
 
     this.mesh = new THREE.Mesh(geo, mat)
     this.mesh.receiveShadow = true
@@ -41,9 +45,20 @@ export class Terrain {
   }
 
   getHeight(x, z) {
+    const info = this.getSurfaceInfo(x, z)
+    return info.height
+  }
+
+  getSurfaceInfo(x, z) {
     const dir = new THREE.Vector3(x, 0, z)
     const raycaster = new THREE.Raycaster(dir, new THREE.Vector3(0, -1, 0), 0, 10)
     const hits = raycaster.intersectObject(this.mesh, false)
-    return hits.length > 0 ? hits[0].point.y : 0
+    if (hits.length > 0) {
+      return {
+        height: hits[0].point.y,
+        normal: hits[0].face.normal.clone(),
+      }
+    }
+    return { height: 0, normal: new THREE.Vector3(0, 1, 0) }
   }
 }

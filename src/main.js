@@ -8,6 +8,7 @@ import { Track } from './track/Track.js'
 import { LapManager } from './track/LapManager.js'
 import { Terrain } from './terrain/Terrain.js'
 import { addEnvironmentDetail, createGroundTexture } from './environment/EnvironmentDetail.js'
+import { colorTerrainByElevation, createTerrainMaterial, createWaterPlane, applyAlpineAtmosphere } from './environment/AlpineTerrain.js'
 import { AiBot } from './ai/AiBot.js'
 import { GameState } from './ui/GameState.js'
 import { Menu } from './ui/Menu.js'
@@ -38,10 +39,16 @@ function initScene() {
 
   track = new Track()
   scene.add(track.mesh)
-  terrain = new Terrain(60, 80, track.spline)
-  terrain.mesh.material.map = createGroundTexture()
-  terrain.mesh.material.needsUpdate = true
+  terrain = new Terrain(140, 100, track.spline)
+  colorTerrainByElevation(terrain.geometry)
+  terrain.mesh.material = createTerrainMaterial()
   scene.add(terrain.mesh)
+
+  const water = createWaterPlane(180, 180)
+  water.position.y = -0.5
+  scene.add(water)
+
+  applyAlpineAtmosphere(scene)
 
   const isOnTrack = (x, z) => {
     let minDist = Infinity
@@ -85,6 +92,8 @@ function setupPlayerBike() {
   const startP = track.spline.getPoint(0)
   const startTangent = track.spline.getTangent(0)
   bike = new Bike(0xff4400)
+  bike.maxSpeed = 18
+  bike.acceleration = 12
   bike.mesh.position.set(startP.x, 0.35, startP.z)
   bike.mesh.rotation.y = Math.atan2(startTangent.x, startTangent.z)
   scene.add(bike.mesh)
@@ -329,7 +338,13 @@ function animate() {
 
   if (state === GameState.RACING || state === GameState.MENU) {
     if (bike && state === GameState.RACING) {
-      bike.update(input.keys, dt, track, terrain, trees, null, () => chaseCam?.shake(0.3))
+      const sampleGround = (x, z) => {
+        const ramp = track.getRampInfo(x, z)
+        if (ramp) return ramp
+        const surf = terrain.getSurfaceInfo(x, z)
+        return { height: surf.height, normal: surf.normal, onRamp: false }
+      }
+      bike.update(input.keys, dt, track, terrain, trees, null, () => chaseCam?.shake(0.3), sampleGround)
 
       const oldLap = lapManager.currentLap
       const oldCp = lapManager.nextCheckpoint

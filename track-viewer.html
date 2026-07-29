@@ -32,7 +32,7 @@ const scene = new THREE.Scene()
 scene.background = new THREE.Color(0x1a2a1a)
 
 const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 100)
-camera.position.set(0, 18, 22)
+camera.position.set(0, 40, 60)
 
 const renderer = new THREE.WebGLRenderer({ antialias: true })
 renderer.setSize(innerWidth, innerHeight)
@@ -69,8 +69,7 @@ const points = [
   new THREE.Vector3(-12, 0, -12),
 ]
 
-// Ground plane (grid)
-const grid = new THREE.GridHelper(40, 20, 0x3a5a3a, 0x2a4a2a)
+const grid = new THREE.GridHelper(100, 20, 0x3a5a3a, 0x2a4a2a)
 grid.position.y = -0.01
 scene.add(grid)
 

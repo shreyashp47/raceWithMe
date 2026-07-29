@@ -11,6 +11,10 @@ npm run dev
 
 Open `http://localhost:5173` in your browser.
 
+## How to Play
+
+Race 3 laps around an alpine track against 4 AI bots. Ride over the dirt ramps to catch air — land cleanly to keep speed, crash if you land too hard. Off-road sections are slower but can be used as shortcuts.
+
 ## Controls
 
 | Key | Action |
@@ -20,6 +24,8 @@ Open `http://localhost:5173` in your browser.
 | A / ← | Steer Left |
 | D / → | Steer Right |
 | Esc | Return to menu |
+
+**Jumping**: Ride over ramp sections on the track at speed — launch is automatic. Nose dips while falling; landing angle and speed determine if you land cleanly or crash.
 
 Mobile touch controls auto-appear on touch devices.
 
