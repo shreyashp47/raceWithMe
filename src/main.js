@@ -39,7 +39,7 @@ function initScene() {
 
   track = new Track()
   scene.add(track.mesh)
-  terrain = new Terrain(120, 80, track.spline)
+  terrain = new Terrain(200, 100, track.spline)
   colorTerrainByElevation(terrain.geometry)
   terrain.mesh.material = createTerrainMaterial()
   scene.add(terrain.mesh)
@@ -86,8 +86,8 @@ function setupPlayerBike() {
   const startP = track.spline.getPoint(0)
   const startTangent = track.spline.getTangent(0)
   bike = new Bike(0xff4400)
-  bike.maxSpeed = 18
-  bike.acceleration = 12
+  bike.maxSpeed = 22
+  bike.acceleration = 15
   bike.mesh.position.set(startP.x, 0.35, startP.z)
   bike.mesh.rotation.y = Math.atan2(startTangent.x, startTangent.z)
   scene.add(bike.mesh)

@@ -11,17 +11,15 @@ export class Track {
 
   constructor() {
     const points = [
-      new THREE.Vector3(0, 0, -35),
-      new THREE.Vector3(20, 0, -30),
-      new THREE.Vector3(40, 0, -15),
-      new THREE.Vector3(45, 0, 5),
-      new THREE.Vector3(35, 0, 25),
-      new THREE.Vector3(15, 0, 35),
-      new THREE.Vector3(-15, 0, 35),
-      new THREE.Vector3(-35, 0, 25),
-      new THREE.Vector3(-45, 0, 5),
-      new THREE.Vector3(-40, 0, -15),
-      new THREE.Vector3(-20, 0, -30),
+      new THREE.Vector3(0, 0, -50),
+      new THREE.Vector3(50, 0, -45),
+      new THREE.Vector3(80, 0, -20),
+      new THREE.Vector3(80, 0, 20),
+      new THREE.Vector3(50, 0, 45),
+      new THREE.Vector3(-50, 0, 50),
+      new THREE.Vector3(-80, 0, 20),
+      new THREE.Vector3(-80, 0, -20),
+      new THREE.Vector3(-50, 0, -45),
     ]
 
     this.spline = new THREE.CatmullRomCurve3(points, true)
