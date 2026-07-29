@@ -30,6 +30,18 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
     const tire = new THREE.Mesh(tireGeo, rubberMat)
     wheelGroup.add(tire)
 
+    // Chunky tread knobs around the tire — reads as an off-road/MX tire
+    // instead of a smooth cylinder.
+    const knobCount = 16
+    for (let i = 0; i < knobCount; i++) {
+      const angle = (i / knobCount) * Math.PI * 2
+      const knobGeo = new THREE.BoxGeometry(width * 1.05, radius * 0.16, radius * 0.16)
+      const knob = new THREE.Mesh(knobGeo, rubberMat)
+      knob.position.set(0, Math.sin(angle) * radius * 0.96, Math.cos(angle) * radius * 0.96)
+      knob.rotation.x = angle
+      wheelGroup.add(knob)
+    }
+
     // hub + spokes
     const hubGeo = new THREE.CylinderGeometry(radius * 0.18, radius * 0.18, width * 1.4, 8)
     hubGeo.rotateZ(Math.PI / 2)
@@ -42,6 +54,14 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
       spoke.rotation.x = (Math.PI / 6) * i
       wheelGroup.add(spoke)
     }
+
+    // Brake disc — thin chrome ring offset to one side of the hub
+    const discGeo = new THREE.CylinderGeometry(radius * 0.7, radius * 0.7, width * 0.15, 16)
+    discGeo.rotateZ(Math.PI / 2)
+    const disc = new THREE.Mesh(discGeo, chromeMat)
+    disc.position.x = width * 0.7
+    wheelGroup.add(disc)
+
     return wheelGroup
   }
 
@@ -52,6 +72,10 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   const rearWheel = makeWheel(0.24, 0.07)
   rearWheel.position.set(0, 0.24, -0.48)
   group.add(rearWheel)
+
+  // Expose wheels so Bike.update() can spin them based on speed
+  group.userData.frontWheel = frontWheel
+  group.userData.rearWheel = rearWheel
 
   // Fender (front)
   const fenderGeo = new THREE.BoxGeometry(0.12, 0.02, 0.22)
@@ -96,6 +120,17 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   tank.rotation.x = 0.12
   group.add(tank)
 
+  // Accent stripe on the tank — white racing stripe, common on MX bikes,
+  // breaks up the flat body color panel.
+  const stripeGeo = new THREE.BoxGeometry(0.162, 0.03, 0.24)
+  const stripeMat = new THREE.MeshStandardMaterial({
+    color: 0xf2f2f2, roughness: 0.4, metalness: 0.1, flatShading: true
+  })
+  const stripe = new THREE.Mesh(stripeGeo, stripeMat)
+  stripe.position.copy(tank.position)
+  stripe.rotation.copy(tank.rotation)
+  group.add(stripe)
+
   // Seat
   const seatGeo = new THREE.BoxGeometry(0.14, 0.05, 0.28)
   const seat = new THREE.Mesh(seatGeo, darkMat)
@@ -117,6 +152,33 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   const swingR = swingL.clone()
   swingR.position.x = 0.06
   group.add(swingR)
+
+  // Rear shock absorber — spring coil + damper body, running from the
+  // frame down to the swingarm. This was previously missing, leaving the
+  // rear end looking unsupported/floating.
+  const shockBodyGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.22, 8)
+  const shockBody = new THREE.Mesh(shockBodyGeo, darkMat)
+  shockBody.position.set(0, 0.28, -0.22)
+  shockBody.rotation.x = -0.55
+  group.add(shockBody)
+
+  const shockSpringGeo = new THREE.TorusGeometry(0.025, 0.006, 6, 10)
+  for (let i = 0; i < 5; i++) {
+    const coil = new THREE.Mesh(shockSpringGeo, chromeMat)
+    const t = i / 4
+    coil.position.set(0, 0.24 + t * 0.09, -0.16 - t * 0.13)
+    coil.rotation.x = 1.0
+    group.add(coil)
+  }
+
+  // Footpegs — small chrome pegs the rider's legs actually rest on
+  ;[-1, 1].forEach(xSide => {
+    const pegGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.1, 6)
+    pegGeo.rotateZ(Math.PI / 2)
+    const peg = new THREE.Mesh(pegGeo, chromeMat)
+    peg.position.set(0.14 * xSide, 0.22, 0.0)
+    group.add(peg)
+  })
 
   // ================= DETAILS =================
   // Headlights
@@ -295,6 +357,13 @@ export class Bike {
       this.tilt += this.tiltVelocity * dt
     }
     this.mesh.rotation.z = this.tilt
+
+    // Spin the wheels based on actual speed — radius-correct rotation rate
+    // so wheel spin visually matches how fast the bike is moving.
+    const wheelRadius = 0.23
+    const spinDelta = (this.speed * dt) / wheelRadius
+    if (this.mesh.userData.frontWheel) this.mesh.userData.frontWheel.rotation.x += spinDelta
+    if (this.mesh.userData.rearWheel) this.mesh.userData.rearWheel.rotation.x += spinDelta
 
     // Fore-aft pitch: nose dips under braking, lifts under acceleration
     const targetPitch = forward ? -0.1 : reverse ? 0.15 : 0
