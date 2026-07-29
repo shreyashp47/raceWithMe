@@ -1,0 +1,71 @@
+# Race With Me
+
+Browser-based 3D bike racing game — single-player vs 4 AI bots across a jungle terrain track. Built with Three.js.
+
+## Play
+
+```
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173` in your browser.
+
+## Controls
+
+| Key | Action |
+|-----|--------|
+| W / ↑ | Accelerate |
+| S / ↓ | Brake / Reverse |
+| A / ← | Steer Left |
+| D / → | Steer Right |
+| Esc | Return to menu |
+
+Mobile touch controls auto-appear on touch devices.
+
+## Top Bar
+
+| Button | Action |
+|--------|--------|
+| 📺 | Toggle CRT scanline filter |
+| 👻 | Toggle ghost replay (best run) |
+| 🔊 | Toggle audio |
+| ↻ | Restart race |
+| ⌂ | Return to menu |
+| ⛶ | Toggle fullscreen |
+
+## Dev Tools
+
+```
+npm run bike     # Standalone bike viewer with orbit controls
+npm run track    # Standalone track viewer with orbit controls
+```
+
+## Features
+
+- **Track**: Winding closed-loop road (CatmullRom spline, 12 control points) with dashed center line, dirt surface, green edge lines
+- **Terrain**: Procedural elevation with hills/mountains; off-track areas reduce traction
+- **Bike**: Low-poly sport bike with rider, helmet, dual headlights, spoke wheels; third-person chase camera
+- **AI**: 4 bots with 4 difficulty tiers, follow track spline, react to terrain height
+- **Laps**: 12 checkpoints, 3 laps, finish detection
+- **HUD**: Speed (KM/H), position, lap counter, live gap to next rider, overtake notifications
+- **Countdown**: 3-2-1-GO with animated pop
+- **Results**: Graded rank (F to A+) with position, top speed, restart/home buttons
+- **Ghost**: Records best run to localStorage, plays as cyan transparent bike
+- **Photo Finish**: Freeze frame on close races (<0.5s)
+- **CRT Filter**: Scanlines + vignette overlay toggle
+
+## Tech Stack
+
+- [Three.js](https://threejs.org/) (r185) — 3D rendering
+- [Vite](https://vitejs.dev/) — Build tool / dev server
+- JavaScript (ES modules), no TypeScript
+
+## Build
+
+```
+npm run build    # Outputs to dist/
+npm run preview  # Preview production build
+```
+
+Deployed via GitHub Actions to GitHub Pages.
