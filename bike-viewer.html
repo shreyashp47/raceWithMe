@@ -53,6 +53,8 @@ controls.update()
   const keys = {}
   window.addEventListener('keydown', (e) => { keys[e.key] = true })
   window.addEventListener('keyup', (e) => { keys[e.key] = false })
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.6)
 scene.add(ambient)
 
 const dir = new THREE.DirectionalLight(0xffffff, 1.2)
