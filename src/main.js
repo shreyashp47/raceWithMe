@@ -51,7 +51,7 @@ function initScene() {
       const d = Math.sqrt((p.x - x) ** 2 + (p.z - z) ** 2)
       if (d < minDist) minDist = d
     }
-    return minDist < track.width
+    return minDist < track.width * 2
   }
   const env = addEnvironmentDetail(scene, (x, z) => terrain.getHeight(x, z), isOnTrack)
   trees = env.treePositions
