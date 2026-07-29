@@ -8,7 +8,7 @@ import { Track } from './track/Track.js'
 import { LapManager } from './track/LapManager.js'
 import { Terrain } from './terrain/Terrain.js'
 import { addEnvironmentDetail, createGroundTexture } from './environment/EnvironmentDetail.js'
-import { colorTerrainByElevation, createTerrainMaterial, createWaterPlane, applyAlpineAtmosphere } from './environment/AlpineTerrain.js'
+import { colorTerrainByElevation, createTerrainMaterial } from './environment/AlpineTerrain.js'
 import { AiBot } from './ai/AiBot.js'
 import { GameState } from './ui/GameState.js'
 import { Menu } from './ui/Menu.js'
@@ -39,16 +39,10 @@ function initScene() {
 
   track = new Track()
   scene.add(track.mesh)
-  terrain = new Terrain(140, 100, track.spline)
+  terrain = new Terrain(120, 80, track.spline)
   colorTerrainByElevation(terrain.geometry)
   terrain.mesh.material = createTerrainMaterial()
   scene.add(terrain.mesh)
-
-  const water = createWaterPlane(180, 180)
-  water.position.y = -0.5
-  scene.add(water)
-
-  applyAlpineAtmosphere(scene)
 
   const isOnTrack = (x, z) => {
     let minDist = Infinity
