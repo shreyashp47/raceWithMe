@@ -243,7 +243,7 @@ export class Bike {
   turnSpeed = 3
   friction = 4
   offroadFriction = 8
-
+  tilt = 0
 
   constructor(color) {
     this.mesh = createBikeMesh(color)
@@ -278,7 +278,13 @@ export class Bike {
     if (Math.abs(this.speed) > 0.1) {
       const turnDir = turnLeft ? 1 : turnRight ? -1 : 0
       this.mesh.rotation.y += turnDir * this.turnSpeed * dt * Math.sign(this.speed)
+
+      const targetTilt = turnDir * Math.min(0.35, Math.abs(this.speed) * 0.025) * Math.sign(this.speed)
+      this.tilt += (targetTilt - this.tilt) * Math.min(1, 8 * dt)
+    } else {
+      this.tilt += (0 - this.tilt) * Math.min(1, 8 * dt)
     }
+    this.mesh.rotation.z = this.tilt
 
     const forwardVec = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mesh.quaternion)
     const newPos = this.mesh.position.clone().add(forwardVec.multiplyScalar(this.speed * dt))
