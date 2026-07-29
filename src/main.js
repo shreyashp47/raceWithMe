@@ -1,11 +1,13 @@
 import * as THREE from 'three'
+import { ChaseCamera } from './camera/ChaseCamera.js'
+import { createUpgradedScene, resizeUpgradedScene } from './scene/UpgradedScene.js'
 import { Bike } from './objects/Bike.js'
 import { KeyboardControls } from './controls/KeyboardControls.js'
 import { TouchControls } from './controls/TouchControls.js'
 import { Track } from './track/Track.js'
 import { LapManager } from './track/LapManager.js'
 import { Terrain } from './terrain/Terrain.js'
-import { scatterTrees } from './objects/Tree.js'
+import { addEnvironmentDetail, createGroundTexture } from './environment/EnvironmentDetail.js'
 import { AiBot } from './ai/AiBot.js'
 import { GameState } from './ui/GameState.js'
 import { Menu } from './ui/Menu.js'
@@ -19,36 +21,39 @@ let scene, camera, renderer
 let bike, track, terrain, trees, bots, lapManager
 let keyboard, touch, input, clock
 let audio, crt, ghost, photoFinish
+let chaseCam
 let hud, countdownEl, resultsEl, topBar, topBarBtns
 let hudTimer = 0
 let overtakeNotif = null
 
 
-let camSnap = true
-
 function initScene() {
-  scene = new THREE.Scene()
-  scene.background = new THREE.Color(0x87ceeb)
+  const upgraded = createUpgradedScene(document.body)
+  renderer = upgraded.renderer
+  scene = upgraded.scene
+  upgraded.addLighting()
+
   camera = new THREE.PerspectiveCamera(74, innerWidth / innerHeight, 0.3, 330)
   camera.position.set(0, 5, 12)
-  renderer = new THREE.WebGLRenderer({ antialias: true })
-  renderer.setSize(innerWidth, innerHeight)
-  renderer.shadowMap.enabled = true
-  document.body.prepend(renderer.domElement)
-
-  const ambient = new THREE.AmbientLight(0x404060, 0.5)
-  scene.add(ambient)
-  const dir = new THREE.DirectionalLight(0xffffff, 1)
-  dir.position.set(10, 20, 10)
-  dir.castShadow = true
-  scene.add(dir)
 
   track = new Track()
   scene.add(track.mesh)
   terrain = new Terrain(60, 80, track.spline)
+  terrain.mesh.material.map = createGroundTexture()
+  terrain.mesh.material.needsUpdate = true
   scene.add(terrain.mesh)
-  trees = scatterTrees(track, terrain, 100)
-  trees.forEach(t => scene.add(t))
+
+  const isOnTrack = (x, z) => {
+    let minDist = Infinity
+    for (let t = 0; t <= 1; t += 0.02) {
+      const p = track.spline.getPoint(t)
+      const d = Math.sqrt((p.x - x) ** 2 + (p.z - z) ** 2)
+      if (d < minDist) minDist = d
+    }
+    return minDist < track.width * 0.6
+  }
+  const env = addEnvironmentDetail(scene, (x, z) => terrain.getHeight(x, z), isOnTrack)
+  trees = env.treePositions
 
   keyboard = new KeyboardControls()
   touch = new TouchControls()
@@ -83,32 +88,6 @@ function setupPlayerBike() {
   bike.mesh.position.set(startP.x, 0.35, startP.z)
   bike.mesh.rotation.y = Math.atan2(startTangent.x, startTangent.z)
   scene.add(bike.mesh)
-}
-
-function updateChaseCamera(dt) {
-  if (!bike) return
-  const p = bike.mesh.position
-  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(bike.mesh.quaternion)
-  const dist = 3 + Math.min(Math.abs(bike.speed) * 0.08, 0.8)
-  const height = 1.4
-
-  const dx = p.x - fwd.x * dist
-  const dz = p.z - fwd.z * dist
-  const dy = Math.max(p.y + height, 0.3)
-
-  if (camSnap) {
-    camera.position.set(dx, dy, dz)
-    camSnap = false
-  } else {
-    const k = 1 - Math.exp(-dt * 9)
-    camera.position.x += (dx - camera.position.x) * k
-    camera.position.y += (dy - camera.position.y) * k
-    camera.position.z += (dz - camera.position.z) * k
-  }
-
-  const lookAhead = fwd.clone().multiplyScalar(6)
-  const lookTarget = new THREE.Vector3(p.x + lookAhead.x, p.y + 0.2, p.z + lookAhead.z)
-  camera.lookAt(lookTarget)
 }
 
 function createUI() {
@@ -285,6 +264,7 @@ function setupRace() {
   lapManager = new LapManager(track.checkpoints)
   ghost.startRecording()
   clock.start()
+  chaseCam = new ChaseCamera(camera)
 }
 
 function startCountdown() {
@@ -349,7 +329,7 @@ function animate() {
 
   if (state === GameState.RACING || state === GameState.MENU) {
     if (bike && state === GameState.RACING) {
-      bike.update(input.keys, dt, track, terrain, trees)
+      bike.update(input.keys, dt, track, terrain, trees, null, () => chaseCam?.shake(0.3))
 
       const oldLap = lapManager.currentLap
       const oldCp = lapManager.nextCheckpoint
@@ -388,7 +368,7 @@ function animate() {
 
     if (bots) bots.forEach(b => b.update(dt, terrain))
     ghost.update()
-    updateChaseCamera(dt)
+    if (bike && chaseCam) chaseCam.update(bike.mesh, bike.speed, bike.maxSpeed, dt)
   }
 
   if (photoFinish.freezing) {
@@ -456,11 +436,7 @@ function showResults() {
 }
 
 window.addEventListener('resize', () => {
-  if (camera) {
-    camera.aspect = innerWidth / innerHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(innerWidth, innerHeight)
-  }
+  if (camera) resizeUpgradedScene(renderer, camera)
 })
 
 document.addEventListener('keydown', (e) => {

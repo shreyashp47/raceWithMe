@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { Materials } from '../materials/MaterialPresets.js'
 
 /**
  * Creates a stylized low-poly dirt/downhill bike.
@@ -10,37 +11,16 @@ export function createBikeMesh(colorHex = 0xff4400, opts = {}) {
   const group = new THREE.Group()
   const isTransparent = !!opts.transparent
   const opacityVal = opts.transparent ? (opts.opacity || 0.4) : 1
+  const applyOpts = (mat) => { mat.transparent = isTransparent; mat.opacity = opacityVal; return mat }
 
-  // ---- Materials ----
-  const bodyMat = new THREE.MeshStandardMaterial({
-    color: colorHex, flatShading: true, roughness: 0.5, metalness: 0.2,
-    transparent: isTransparent, opacity: opacityVal
-  })
-  const darkMat = new THREE.MeshStandardMaterial({
-    color: 0x1a1a1a, flatShading: true, roughness: 0.7, metalness: 0.1,
-    transparent: isTransparent, opacity: opacityVal
-  })
-  const chromeMat = new THREE.MeshStandardMaterial({
-    color: 0xcfd6dc, flatShading: true, roughness: 0.2, metalness: 0.9,
-    transparent: isTransparent, opacity: opacityVal
-  })
-  const rubberMat = new THREE.MeshStandardMaterial({
-    color: 0x111111, flatShading: true, roughness: 0.9, metalness: 0.0,
-    transparent: isTransparent, opacity: opacityVal
-  })
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0x88ccff, flatShading: true, roughness: 0.1, metalness: 0.6,
-    transparent: true, opacity: 0.6
-  })
-  const skinMat = new THREE.MeshStandardMaterial({
-    color: 0xd9a066, flatShading: true, roughness: 0.8
-  })
-  const headlightMat = new THREE.MeshStandardMaterial({
-    color: 0xffaa33, emissive: 0xff8800, emissiveIntensity: 1.2, flatShading: true
-  })
-  const taillightMat = new THREE.MeshStandardMaterial({
-    color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 0.8, flatShading: true
-  })
+  const bodyMat = applyOpts(Materials.paint(colorHex))
+  const darkMat = applyOpts(Materials.darkMetal())
+  const chromeMat = applyOpts(Materials.chrome())
+  const rubberMat = applyOpts(Materials.rubber())
+  const glassMat = Materials.glass()
+  const skinMat = Materials.skin()
+  const headlightMat = Materials.emissive(0xffaa33, 1.2)
+  const taillightMat = Materials.emissive(0xff2222, 0.8)
 
   // ================= WHEELS =================
   function makeWheel(radius, width) {
@@ -269,7 +249,7 @@ export class Bike {
     this.mesh = createBikeMesh(color)
   }
 
-  update(input, dt, track, terrain, trees, audio) {
+  update(input, dt, track, terrain, trees, audio, onCollide) {
     const forward = input['w'] || input['arrowup']
     const reverse = input['s'] || input['arrowdown']
     const turnLeft = input['a'] || input['arrowleft']
@@ -311,13 +291,13 @@ export class Bike {
     if (this.speed > 0 && trees) {
       let hit = false
       for (const tree of trees) {
-        const treePos = new THREE.Vector3()
-        tree.getWorldPosition(treePos)
+        const treePos = tree.isMesh ? new THREE.Vector3().setFromMatrixPosition(tree.matrixWorld) : tree
         const dist = newPos.distanceTo(treePos)
         if (dist < 1.2) {
           hit = true
           this.speed = -2
           audio?.playCollision()
+          onCollide?.()
           break
         }
       }

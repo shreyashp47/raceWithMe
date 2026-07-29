@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { Materials } from '../materials/MaterialPresets.js'
 
 export class Terrain {
   mesh
@@ -23,12 +24,7 @@ export class Terrain {
     pos.needsUpdate = true
     geo.computeVertexNormals()
 
-    const mat = new THREE.MeshStandardMaterial({
-      color: 0x3a7d3a,
-      roughness: 0.9,
-      metalness: 0,
-      flatShading: true,
-    })
+    const mat = Materials.grass()
 
     this.mesh = new THREE.Mesh(geo, mat)
     this.mesh.receiveShadow = true
