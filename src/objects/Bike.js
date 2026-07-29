@@ -244,6 +244,7 @@ export class Bike {
   friction = 4
   offroadFriction = 8
   tilt = 0
+  tiltVelocity = 0
 
   constructor(color) {
     this.mesh = createBikeMesh(color)
@@ -279,12 +280,25 @@ export class Bike {
       const turnDir = turnLeft ? 1 : turnRight ? -1 : 0
       this.mesh.rotation.y += turnDir * this.turnSpeed * dt * Math.sign(this.speed)
 
-      const targetTilt = turnDir * Math.min(0.35, Math.abs(this.speed) * 0.025) * Math.sign(this.speed)
-      this.tilt += (targetTilt - this.tilt) * Math.min(1, 8 * dt)
+      // Spring-damped lean with grip + speed scaling
+      const leanAmount = turnDir * Math.min(0.5, Math.abs(this.speed) * 0.03) * Math.sign(this.speed)
+      const gripFactor = onTrack ? 1 : 0.55
+      const targetTilt = leanAmount * gripFactor
+      const spring = 14
+      const damping = 16
+      this.tiltVelocity += (targetTilt - this.tilt) * spring * dt
+      this.tiltVelocity *= Math.max(0, 1 - damping * dt)
+      this.tilt += this.tiltVelocity * dt
     } else {
-      this.tilt += (0 - this.tilt) * Math.min(1, 8 * dt)
+      this.tiltVelocity += (0 - this.tilt) * 14 * dt
+      this.tiltVelocity *= Math.max(0, 1 - 18 * dt)
+      this.tilt += this.tiltVelocity * dt
     }
     this.mesh.rotation.z = this.tilt
+
+    // Fore-aft pitch: nose dips under braking, lifts under acceleration
+    const targetPitch = forward ? -0.1 : reverse ? 0.15 : 0
+    this.mesh.rotation.x += (targetPitch - this.mesh.rotation.x) * Math.min(1, 6 * dt)
 
     const forwardVec = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mesh.quaternion)
     const newPos = this.mesh.position.clone().add(forwardVec.multiplyScalar(this.speed * dt))
