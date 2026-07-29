@@ -50,7 +50,9 @@ const controls = new OrbitControls(camera, renderer.domElement)
 controls.target.set(0, 0.45, 0)
 controls.update()
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.6)
+  const keys = {}
+  window.addEventListener('keydown', (e) => { keys[e.key] = true })
+  window.addEventListener('keyup', (e) => { keys[e.key] = false })
 scene.add(ambient)
 
 const dir = new THREE.DirectionalLight(0xffffff, 1.2)
@@ -63,6 +65,8 @@ scene.add(rim)
 
 
 let bikeGroup = null
+let tilt = 0
+let tiltVelocity = 0
 
 function buildBike(color) {
   if (bikeGroup) scene.remove(bikeGroup)
@@ -97,10 +101,31 @@ window.addEventListener('resize', () => {
 })
 
 function animate() {
-  requestAnimationFrame(animate)
-  renderer.render(scene, camera)
-}
-animate()
+   requestAnimationFrame(animate)
+
+   const turnLeft = keys['a'] || keys['ArrowLeft']
+   const turnRight = keys['d'] || keys['ArrowRight']
+
+   const turnDir = turnLeft ? 1 : turnRight ? -1 : 0
+   const speed = 5
+
+   if (turnDir !== 0) {
+     bikeGroup.rotation.y += turnDir * 0.03
+     const leanAmount = turnDir * Math.min(0.5, speed * 0.03) * Math.sign(speed)
+     tiltVelocity += (leanAmount - tilt) * 14 * (1 / 60)
+     tiltVelocity *= Math.max(0, 1 - 16 * (1 / 60))
+     tilt += tiltVelocity * (1 / 60)
+   } else {
+     tiltVelocity += (0 - tilt) * 14 * (1 / 60)
+     tiltVelocity *= Math.max(0, 1 - 18 * (1 / 60))
+     tilt += tiltVelocity * (1 / 60)
+   }
+   bikeGroup.rotation.z = tilt
+
+   renderer.render(scene, camera)
+   controls.update()
+ }
+ animate()
 </script>
 </body>
 </html>
