@@ -3,8 +3,11 @@ import * as THREE from 'three'
 export class Terrain {
   mesh
   geometry
+  trackSpline
 
   constructor(size, segments, trackSpline) {
+    this.trackSpline = trackSpline
+
     const geo = new THREE.PlaneGeometry(size, size, segments, segments)
     geo.rotateX(-Math.PI / 2)
     this.geometry = geo
@@ -14,13 +17,9 @@ export class Terrain {
       const x = pos.getX(i)
       const z = pos.getZ(i)
 
-      const nearTrack = this.distanceToSpline(x, z, trackSpline) < 5
-      if (nearTrack) continue
+      if (this.isNearSpline(x, z)) continue
 
-      const h = Math.sin(x * 0.08) * Math.cos(z * 0.1) * 10
-        + Math.sin(x * 0.15 + z * 0.12) * 5
-        + Math.sin(x * 0.3 + z * 0.25) * 2
-      pos.setY(i, h)
+      pos.setY(i, this.elevation(x, z))
     }
 
     pos.needsUpdate = true
@@ -34,31 +33,32 @@ export class Terrain {
     this.mesh.receiveShadow = true
   }
 
-  distanceToSpline(x, z, spline) {
+  elevation(x, z) {
+    return Math.sin(x * 0.08) * Math.cos(z * 0.1) * 10
+      + Math.sin(x * 0.15 + z * 0.12) * 5
+      + Math.sin(x * 0.3 + z * 0.25) * 2
+  }
+
+  isNearSpline(x, z) {
+    if (!this.trackSpline) return false
     let minDist = Infinity
     for (let t = 0; t <= 1; t += 0.01) {
-      const p = spline.getPoint(t)
+      const p = this.trackSpline.getPoint(t)
       const d = Math.sqrt((p.x - x) ** 2 + (p.z - z) ** 2)
       if (d < minDist) minDist = d
     }
-    return minDist
+    return minDist < 5
   }
 
   getHeight(x, z) {
-    const info = this.getSurfaceInfo(x, z)
-    return info.height
+    if (this.isNearSpline(x, z)) return 0
+    return this.elevation(x, z)
   }
 
   getSurfaceInfo(x, z) {
-    const dir = new THREE.Vector3(x, 0, z)
-    const raycaster = new THREE.Raycaster(dir, new THREE.Vector3(0, -1, 0), 0, 10)
-    const hits = raycaster.intersectObject(this.mesh, false)
-    if (hits.length > 0) {
-      return {
-        height: hits[0].point.y,
-        normal: hits[0].face.normal.clone(),
-      }
+    return {
+      height: this.getHeight(x, z),
+      normal: new THREE.Vector3(0, 1, 0),
     }
-    return { height: 0, normal: new THREE.Vector3(0, 1, 0) }
   }
 }
