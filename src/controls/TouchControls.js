@@ -1,27 +1,37 @@
 export class TouchControls {
   keys = {}
-  el
 
   constructor() {
-    this.el = document.createElement('div')
-    this.el.id = 'touch-controls'
-    this.el.innerHTML = `
+    const left = document.createElement('div')
+    left.id = 'touch-left'
+    left.innerHTML = `
       <button data-key="arrowup" class="touch-btn up">↑</button>
-      <button data-key="arrowleft" class="touch-btn left">←</button>
       <button data-key="arrowdown" class="touch-btn down">↓</button>
+    `
+    document.body.appendChild(left)
+
+    const right = document.createElement('div')
+    right.id = 'touch-right'
+    right.innerHTML = `
+      <button data-key="arrowleft" class="touch-btn left">←</button>
       <button data-key="arrowright" class="touch-btn right">→</button>
     `
-    document.body.appendChild(this.el)
+    document.body.appendChild(right)
 
     const style = document.createElement('style')
     style.textContent = `
-      #touch-controls {
-        position: fixed; bottom: 20px; left: 0; width: 100%;
-        display: none; justify-content: center; gap: 12px;
+      #touch-left {
+        position: fixed; bottom: 40px; left: 20px;
+        display: none; flex-direction: column; gap: 8px;
+        pointer-events: none; z-index: 100;
+      }
+      #touch-right {
+        position: fixed; bottom: 40px; right: 20px;
+        display: none; flex-direction: row; gap: 8px;
         pointer-events: none; z-index: 100;
       }
       .touch-btn {
-        width: 60px; height: 60px; border-radius: 50%;
+        width: 64px; height: 64px; border-radius: 50%;
         border: 2px solid rgba(255,255,255,0.6);
         background: rgba(255,255,255,0.15);
         color: #fff; font-size: 22px;
@@ -34,12 +44,13 @@ export class TouchControls {
       }
 
       @media (pointer: coarse) {
-        #touch-controls { display: flex; }
+        #touch-left { display: flex; }
+        #touch-right { display: flex; }
       }
     `
     document.head.appendChild(style)
 
-    this.el.querySelectorAll('.touch-btn').forEach(btn => {
+    document.querySelectorAll('.touch-btn').forEach(btn => {
       const key = btn.getAttribute('data-key')
 
       btn.addEventListener('touchstart', (e) => {
