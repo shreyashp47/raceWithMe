@@ -2,6 +2,11 @@
 
 Browser-based 3D bike racing game — single-player vs 4 AI bots across a jungle terrain track. Built with Three.js.
 
+<p align="center">
+  <img src="screenshots/race-view.png" alt="Race View" width="45%">
+  <img src="screenshots/track-view.png" alt="Track View" width="45%">
+</p>
+
 ## Play
 
 ```
