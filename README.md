@@ -9,12 +9,13 @@ Browser-based 3D bike racing game — single-player vs 4 AI bots across a jungle
 
 ## Play
 
-```
-npm install
-npm run dev
-```
-
-Open `http://localhost:5173` in your browser.
+- **Online**: [shreyashp47.github.io/raceWithMe](https://shreyashp47.github.io/raceWithMe/)
+- **Locally**:
+  ```
+  npm install
+  npm run dev
+  ```
+  Open `http://localhost:5173` in your browser.
 
 ## How to Play
 
